@@ -145,3 +145,5 @@ temp_nwb/*
 *.lock
 *.json
 test_data/kachery-storage/*
+.vscode/*
+.idea/*
