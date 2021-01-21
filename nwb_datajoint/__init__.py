@@ -16,5 +16,4 @@ from ndx_franklab_novela import probe
 
 from .data_import.storage_dirs import check_env, kachery_storage_dir, base_dir
 from .data_import.insert_sessions import insert_sessions
-#from .lock import file_lock as lock
 
