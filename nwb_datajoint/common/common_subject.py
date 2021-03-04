@@ -1,4 +1,3 @@
-# Test of automatic datajoint schema generation from NWB file
 import datajoint as dj
 
 schema = dj.schema("common_subject")
@@ -16,26 +15,21 @@ class Subject(dj.Manual):
     species: varchar(80)
     """
 
-    def __init__(self, *args):
-        super().__init__(*args)  # call the base implementation
-
     def insert_from_nwbfile(self, nwbf):
-        #get the subject information and create a dictionary from it
+        """Get the subject information from the NWBFile and insert it into the Subject table."""
         sub = nwbf.subject
         subject_dict = dict()
         subject_dict['subject_id'] = sub.subject_id
         if sub.age is None:
             subject_dict['age'] = 'unknown'
-
         subject_dict['description'] = sub.description
         subject_dict['genotype'] = sub.genotype
-        sex = 'U'
-        if (sub.sex == 'Male'):
+        if sub.sex == 'Male':
             sex = 'M'
-        elif (sub.sex == 'Female'):
+        elif sub.sex == 'Female':
             sex = 'F'
+        else:
+            sex = 'U'
         subject_dict['sex'] = sex
         subject_dict['species'] = sub.species
-        self.insert1(subject_dict,skip_duplicates=True)
-
-
+        self.insert1(subject_dict, skip_duplicates=True)

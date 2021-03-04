@@ -1,26 +1,25 @@
-# this is the schema for headstage or other environmental sensors
+"""Schema for headstage or other environmental sensors."""
 
 import pynwb
 import datajoint as dj
-from .common_session import Session
-from .common_nwbfile import Nwbfile
-from .common_interval import IntervalList
-from .common_ephys import Raw
-from .nwb_helper_fn import get_data_interface
-from .dj_helper_fn import fetch_nwb
 
-used = [Session, IntervalList]
+from .common_ephys import Raw
+from .common_interval import IntervalList  # noqa: F401
+from .common_nwbfile import Nwbfile
+from .common_session import Session  # noqa: F401
+from .dj_helper_fn import fetch_nwb
+from .nwb_helper_fn import get_data_interface
 
 schema = dj.schema('common_sensors')
 
 
 @schema
 class SensorData(dj.Imported):
-    definition = """                                                                             
+    definition = """
     -> Session
     ---
-    sensor_data_object_id: varchar(40)  # the object id of the data in the NWB file
-    -> IntervalList       # the list of intervals for this object                                                                        
+    sensor_data_object_id : varchar(40)  # object id of the data in the NWB file
+    -> IntervalList       # the list of intervals for this object
     """
 
     def make(self, key):
@@ -31,7 +30,7 @@ class SensorData(dj.Imported):
             sensor = get_data_interface(nwbf, 'analog')
             if sensor is not None:
                 key['sensor_data_object_id'] = sensor.time_series['analog'].object_id
-                key['interval_list_name'] = (Raw() & {'nwb_file_name' : nwb_file_name}).fetch1('interval_list_name')
+                key['interval_list_name'] = (Raw & {'nwb_file_name': nwb_file_name}).fetch1('interval_list_name')
                 self.insert1(key)
 
     def fetch_nwb(self, *attrs, **kwargs):

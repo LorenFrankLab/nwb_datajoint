@@ -1,41 +1,47 @@
 from .common_session import Session, ExperimenterList
-from .common_nwbfile import NwbfileKachery
+# from .common_nwbfile import NwbfileKachery
 from .common_ephys import ElectrodeGroup, Electrode, Raw, SampleCount
 from .common_sensors import SensorData
 from .common_task import TaskEpoch
-from .common_behav import RawPosition, HeadDir, Speed, LinPos, StateScriptFile, VideoFile
+from .common_behav import RawPosition, StateScriptFile, VideoFile  # HeadDir, Speed, LinPos,
 from .common_dio import DIOEvents
+from .common_nwbfile import Nwbfile
 
-def populate_all_common():
+
+def populate_all_common(nwb_file_name):
+    # Insert session one by one
+    fp = [(Nwbfile & {'nwb_file_name': nwb_file_name}).proj()]
     print('Populate Session...')
-    Session().populate()
-    print('Populate NwbfileKachery...')
-    NwbfileKachery.populate()
+    # Session().populate()
+    Session.populate(fp)
+    # If we use Kachery for data sharing we can uncomment the following two lines. TBD
+    # print('Populate NwbfileKachery...')
+    # NwbfileKachery.populate()
     print('Populate ExperimenterList...')
-    ExperimenterList().populate()
+    ExperimenterList.populate(fp)
     print('Populate ElectrodeGroup...')
-    ElectrodeGroup().populate()
+    ElectrodeGroup.populate(fp)
     print('Populate Electrode...')
-    Electrode().populate()
+    Electrode.populate(fp)
     print('Populate Raw...')
-    Raw().populate()
+    Raw.populate(fp)
     print('Populate SampleCount...')
-    SampleCount().populate()
+    SampleCount.populate(fp)
     print('Populate DIOEvants...')
-    DIOEvents().populate()   
+    DIOEvents.populate(fp)
     print('Populate SensorData')
-    SensorData().populate()
+    SensorData.populate(fp)
     print('Populate TaskEpochs')
-    TaskEpoch().populate()
+    TaskEpoch.populate(fp)
     print('Populate StateScriptFile')
-    StateScriptFile().populate()
+    StateScriptFile.populate(fp)
     print('Populate VideoFile')
-    VideoFile().populate()      
+    VideoFile.populate(fp)
     print('RawPosition...')
-    RawPosition().populate()
-    print('HeadDir...')
-    HeadDir().populate()
-    print('Speed...')
-    Speed().populate()
-    print('LinPos...')
-    LinPos().populate()
+    RawPosition.populate(fp)
+    # print('HeadDir...')
+    # HeadDir().populate()
+    # print('Speed...')
+    # Speed().populate()
+    # print('LinPos...')
+    # LinPos().populate()

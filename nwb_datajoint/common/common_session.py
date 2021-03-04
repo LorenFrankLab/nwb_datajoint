@@ -1,22 +1,20 @@
 import datajoint as dj
 import pynwb
 
-from .common_nwbfile import Nwbfile
+from .common_device import DataAcquisitionDevice, CameraDevice, Probe
 from .common_lab import Lab, Institution, LabMember
+from .common_nwbfile import Nwbfile
 from .common_subject import Subject
-from .common_device import DataAcquisitionDevice, CameraDevice
-from .common_device import Probe
-
-# So that linters don't complain that these are unused
-used = [Nwbfile, Subject, Institution, Lab, LabMember]
 
 schema = dj.schema("common_session")
 
 # TODO: figure out what to do about ExperimenterList
 
+
 @schema
 class Session(dj.Imported):
     definition = """
+    # Table for holding experimental sessions.
     -> Nwbfile
     ---
     -> Subject
@@ -33,16 +31,19 @@ class Session(dj.Imported):
         # These imports must go here to avoid cyclic dependencies
         from .common_task import Task, TaskEpoch
         from .common_interval import IntervalList
-        #from .common_ephys import Unit
+        # from .common_ephys import Unit
 
         nwb_file_name = key['nwb_file_name']
         nwb_file_abspath = Nwbfile.get_abs_path(nwb_file_name)
         with pynwb.NWBHDF5IO(path=nwb_file_abspath, mode='r') as io:
             nwbf = io.read()
+
             print('Institution...')
             Institution().insert_from_nwbfile(nwbf)
+
             print('Lab...')
             Lab().insert_from_nwbfile(nwbf)
+
             print('LabMember...')
             LabMember().insert_from_nwbfile(nwbf)
 
@@ -51,9 +52,10 @@ class Session(dj.Imported):
 
             print('DataAcquisitionDevice...')
             DataAcquisitionDevice().insert_from_nwbfile(nwbf)
+
             print('CameraDevice...')
             CameraDevice().insert_from_nwbfile(nwbf)
- 
+
             print('Probe...')
             Probe().insert_from_nwbfile(nwbf)
 
@@ -77,6 +79,7 @@ class Session(dj.Imported):
 
             # print('Unit...')
             # Unit().insert_from_nwbfile(nwbf, nwb_file_name=nwb_file_name)
+
 
 @schema
 class ExperimenterList(dj.Imported):

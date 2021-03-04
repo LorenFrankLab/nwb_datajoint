@@ -1,20 +1,14 @@
-# Test of automatic datajoint schema generation from NWB file
-import numpy as np
 import pynwb
 
-from .common_session import Session
+from .common_session import Session  # noqa: F401
 from .common_nwbfile import Nwbfile
 from .common_interval import IntervalList
 from .common_device import CameraDevice
 from .nwb_helper_fn import get_data_interface
 
-used = [Session, IntervalList, CameraDevice]
-
 import datajoint as dj
-# import franklabnwb.fl_extension as fl_extension
 
-
-schema = dj.schema("common_task", locals())
+schema = dj.schema("common_task")
 
 
 @schema
@@ -23,7 +17,7 @@ class Apparatus(dj.Manual):
      apparatus_name: varchar(80)
      ---
      #-> AnalysisNWBFile
-     nwb_object_id='': varchar(255)  #the NWB object identifier for a class that describes this apparatus
+     nwb_object_id='': varchar(255)  # the NWB object identifier for a class that describes this apparatus
      """
 
     # def insert_from_nwbfile(self, nwbf):
@@ -47,15 +41,16 @@ class Apparatus(dj.Manual):
     #                 else:
     #                     print('Skipping apparatus {}; already in schema\n'.format(d))
 
+
 @schema
 class Task(dj.Manual):
     definition = """
      task_name: varchar(80)
      ---
-     task_description='':   varchar(255)  # description of this task
-     task_type='': varchar(80)  # type of task
-     task_subtype='': varchar(80) # subtype of task
-     
+     task_description = '': varchar(255)  # description of this task
+     task_type = '': varchar(80)          # type of task
+     task_subtype = '': varchar(80)       # subtype of task
+
      """
 
     # def insert_from_nwbfile(self, nwbf):
@@ -78,13 +73,12 @@ class Task(dj.Manual):
     #                 self.insert1(task_dict, skip_duplicates='True')
 
 
-
 @schema
 class TaskEpoch(dj.Imported):
     # Tasks, session and time intervals
     definition = """
      -> Session
-     epoch: int  #the session epoch for this task and apparatus(1 based)
+     epoch: int  # the session epoch for this task and apparatus (1-based)
      ---
      -> Task
      -> CameraDevice
@@ -96,10 +90,20 @@ class TaskEpoch(dj.Imported):
         nwb_file_abspath = Nwbfile().get_abs_path(nwb_file_name)
         with pynwb.NWBHDF5IO(path=nwb_file_abspath, mode='r') as io:
             nwbf = io.read()
-            # find the task modules and for each one, add the task to the Task schema if it isn't there 
+            camera_name = dict()
+            # the tasks refer to the camera_id which is unique for the NWB file but not for CameraDevice schema, so we
+            # need to look up the right camer
+            for d in nwbf.devices:
+                if 'camera_device' in d:
+                    device = nwbf.devices[d]
+                    # get the camera ID
+                    c = str.split(d)
+                    camera_name[int(c[1])] = device.camera_name
+
+            # find the task modules and for each one, add the task to the Task schema if it isn't there
             # and then add an entry for each epoch
             # TODO: change to new task structure
-            for task_num in range(0,10):
+            for task_num in range(0, 10):
                 task_str = 'task_' + str(task_num)
                 task = get_data_interface(nwbf, task_str)
                 if task is not None:
@@ -110,14 +114,16 @@ class TaskEpoch(dj.Imported):
                     key['task_name'] = task.task_name[0]
                     # get the camera used for this task. Use 'none' if there was no camera
                     try:
-                        camera_id = task.camera_id[0]
-                        key['camera_name'] = (CameraDevice() & {'nwb_file_name' : nwb_file_name,
-                                                    'camera_id': int(task.camera_id[0])}).fetch1('camera_name')
-                    except:
+                        camera_id = int(task.camera_id[0])
+                        key['camera_name'] = camera_name[camera_id]
+                    except Exception:  # TODO: use more precise error check
                         key['camera_name'] = 'none'
+                    # make sure the 'none' camera is in the CameraDevice table and add if not
+                    if len((CameraDevice() & {'camera_name': 'none'}).fetch()) == 0:
+                        CameraDevice().insert1({'camera_name': 'none'})
                     # get the interval list for this task, which corresponds to the matching epoch for the raw data.
                     # Users should define more restrictive intervals as required for analyses
-                    session_intervals = (IntervalList() & {'nwb_file_name' : nwb_file_name}).fetch('interval_list_name')
+                    session_intervals = (IntervalList() & {'nwb_file_name': nwb_file_name}).fetch('interval_list_name')
                     for epoch in task.task_epochs[0]:
                         key['epoch'] = epoch
                         target_interval = str(epoch).zfill(2)
