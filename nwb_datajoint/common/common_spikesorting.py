@@ -3,10 +3,12 @@ import datajoint as dj
 from .common_device import Probe
 from .common_interval import IntervalList, SortInterval, interval_list_intersect
 from .common_ephys import Raw, Electrode, ElectrodeGroup
+from .common_session import Session  # noqa: F401
 
 import labbox_ephys as le
 import spikeinterface as si
 import spikeextractors as se
+import spikesorters as ss
 import spiketoolkit as st
 import pynwb
 import os
@@ -391,7 +393,7 @@ class SpikeSorting(dj.Computed):
         """
         Runs spike sorting on the data and parameters specified by the
         SpikeSortingParameter table and inserts a new entry to SpikeSorting table.
-        Specifically, 
+        Specifically,
 
         (1) Creates a new NWB file (analysis NWB file) that will hold the results of
             the sort (in .../analysis/)
@@ -433,22 +435,22 @@ class SpikeSorting(dj.Computed):
 
         if not os.path.isdir(analysis_path):
             os.mkdir(analysis_path)
-        
+
         extractor_nwb_path = str(Path(analysis_path) / unique_file_name)
 
         # Write recording extractor to NWB file
         se.NwbRecordingExtractor.write_recording(recording,
                                                  save_path=extractor_nwb_path,
-                                                 overwrite = _OVERWRITE_SORTING_RESULTS)
+                                                 overwrite=_OVERWRITE_SORTING_RESULTS)
 
 
         print(f'\nRunning spike sorting on {key}...')
         sort_parameters = (SpikeSorterParameters & {'sorter_name': key['sorter_name'],
                                                     'parameter_set_name': key['parameter_set_name']}).fetch1()
-        sorting = si.sorters.run_sorter(key['sorter_name'], recording,
-                                        output_folder=os.getenv('SORTING_TEMP_DIR', None),
-                                        grouping_property='group',
-                                        **sort_parameters['parameter_dict'])
+        sorting = ss.run_sorter(key['sorter_name'], recording,
+                                output_folder=os.getenv('SORTING_TEMP_DIR', None),
+                                # grouping_property='group',
+                                **sort_parameters['parameter_dict'])
 
         key['time_of_sort'] = int(time.time())
 
@@ -535,7 +537,7 @@ class SpikeSorting(dj.Computed):
         ----------
         key: dict
             specifies a (partially filled) entry of SpikeSorting table
-        
+
         Returns
         -------
         sort_interval_valid_times: ndarray of tuples
@@ -563,7 +565,7 @@ class SpikeSorting(dj.Computed):
 
         Returns
         -------
-        sub_R : SubRecordingExtractor
+        sub_R: se.SubRecordingExtractor
         """
 
         raw_data_obj = (Raw & {'nwb_file_name': key['nwb_file_name']}).fetch_nwb()[0]['raw']
