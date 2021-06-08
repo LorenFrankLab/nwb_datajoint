@@ -47,48 +47,51 @@ class PositionInfo(dj.Computed):
         head_speed = BehavioralTimeSeries()
 
         for ind, series_name in enumerate(raw_position.spatial_series):
-            spatial_series = raw_position.get_spatial_series(series_name)
-            position_info = self.calculate_position_info_from_spatial_series(
-                spatial_series,
-                position_info_parameters['max_separation'],
-                position_info_parameters['max_speed'],
-                position_info_parameters['smoothing_std'])
-            head_position.create_spatial_series(
-                name=f"epoch_{ind:02d}",
-                timestamps=position_info['time'],
-                conversion=0.01,
-                data=position_info['head_position'],
-                reference_frame=spatial_series.reference_frame,
-                comments=spatial_series.comments,
-                description='head_x_position, head_y_position'
-            )
+            try:
+                spatial_series = raw_position.get_spatial_series(series_name)
+                position_info = self.calculate_position_info_from_spatial_series(
+                    spatial_series,
+                    position_info_parameters['max_separation'],
+                    position_info_parameters['max_speed'],
+                    position_info_parameters['smoothing_std'])
+                head_position.create_spatial_series(
+                    name=f"epoch_{ind:02d}",
+                    timestamps=position_info['time'],
+                    conversion=0.01,
+                    data=position_info['head_position'],
+                    reference_frame=spatial_series.reference_frame,
+                    comments=spatial_series.comments,
+                    description='head_x_position, head_y_position'
+                )
 
-            head_orientation.create_spatial_series(
-                name=f"epoch_{ind:02d}",
-                timestamps=position_info['time'],
-                conversion=1.0,
-                data=position_info['head_orientation'],
-                reference_frame=spatial_series.reference_frame,
-                comments=spatial_series.comments,
-                description='head_orientation'
-            )
+                head_orientation.create_spatial_series(
+                    name=f"epoch_{ind:02d}",
+                    timestamps=position_info['time'],
+                    conversion=1.0,
+                    data=position_info['head_orientation'],
+                    reference_frame=spatial_series.reference_frame,
+                    comments=spatial_series.comments,
+                    description='head_orientation'
+                )
 
-            head_velocity.create_timeseries(
-                name=f"epoch_{ind:02d}",
-                timestamps=position_info['time'],
-                conversion=0.01,
-                data=position_info['velocity'],
-                comments=spatial_series.comments,
-                description='head_x_velocity, head_y_velocity'
-            )
+                head_velocity.create_timeseries(
+                    name=f"epoch_{ind:02d}",
+                    timestamps=position_info['time'],
+                    conversion=0.01,
+                    data=position_info['velocity'],
+                    comments=spatial_series.comments,
+                    description='head_x_velocity, head_y_velocity'
+                )
 
-            head_speed.create_timeseries(
-                name=f"epoch_{ind:02d}",
-                timestamps=position_info['time'],
-                conversion=0.01,
-                data=position_info['speed'],
-                comments=spatial_series.comments,
-                description='head_speed')
+                head_speed.create_timeseries(
+                    name=f"epoch_{ind:02d}",
+                    timestamps=position_info['time'],
+                    conversion=0.01,
+                    data=position_info['speed'],
+                    comments=spatial_series.comments,
+                    description='head_speed')
+            except ValueError:
+                pass
 
         nwb_analysis_file = AnalysisNwbfile()
         # processing module
@@ -194,3 +197,28 @@ class PositionInfo(dj.Computed):
                 'velocity': velocity,
                 'speed': speed,
                 }
+
+
+@schema
+class LinearizationParameters(dj.Lookup):
+    definition = """
+    param_name : varchar(80)   # name for this set of parameters
+    ---
+    use_HMM = False  : float   # use HMM to determine linearization
+    route_euclidean_distance_scaling = 1.0 : float   # How much to prefer route distances between successive time points that are closer to the euclidean distance. Smaller numbers mean the route distance is more likely to be close to the euclidean distance.
+    sensor_std_dev = 5.0 : float   # Uncertainty of position sensor (in cm).
+    diagonal_bias = 0.5 : float   # Biases the transition matrix to prefer the current track segment.
+    """
+
+
+@schema
+class LinearizedPosition(dj.Computed):
+    definition = """
+    # Table for holding spike sorting runs
+    -> LinearizationParameters
+    ---
+    -> AnalysisNwbfile
+    units_object_id: varchar(40)           # Object ID for the units in NWB file
+    time_of_sort=0: int                    # This is when the sort was done
+    curation_feed_uri='': varchar(1000)    # Labbox-ephys feed for curation
+    """
