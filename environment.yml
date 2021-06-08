@@ -11,6 +11,7 @@ dependencies:
   - dask>=2.30
   - pip>=20.2.*
   - position_tools
+  - track_linearization
   - pip:
     - labbox-ephys>=0.5
     - labbox-ephys-widgets-jp>=0.1
