@@ -12,6 +12,7 @@ dependencies:
   - pip>=20.2.*
   - position_tools
   - track_linearization
+  - nb_conda
   - pip:
     - labbox-ephys>=0.5
     - labbox-ephys-widgets-jp>=0.1
