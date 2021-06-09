@@ -199,26 +199,26 @@ class PositionInfo(dj.Computed):
                 }
 
 
-@schema
-class LinearizationParameters(dj.Lookup):
-    definition = """
-    param_name : varchar(80)   # name for this set of parameters
-    ---
-    use_HMM = False  : float   # use HMM to determine linearization
-    route_euclidean_distance_scaling = 1.0 : float   # How much to prefer route distances between successive time points that are closer to the euclidean distance. Smaller numbers mean the route distance is more likely to be close to the euclidean distance.
-    sensor_std_dev = 5.0 : float   # Uncertainty of position sensor (in cm).
-    diagonal_bias = 0.5 : float   # Biases the transition matrix to prefer the current track segment.
-    """
-
-
-@schema
-class LinearizedPosition(dj.Computed):
-    definition = """
-    # Table for holding spike sorting runs
-    -> LinearizationParameters
-    ---
-    -> AnalysisNwbfile
-    units_object_id: varchar(40)           # Object ID for the units in NWB file
-    time_of_sort=0: int                    # This is when the sort was done
-    curation_feed_uri='': varchar(1000)    # Labbox-ephys feed for curation
+# @schema
+# class LinearizationParameters(dj.Lookup):
+#     definition = """
+#     param_name : varchar(80)   # name for this set of parameters
+#     ---
+#     use_HMM = False  : float   # use HMM to determine linearization
+#     route_euclidean_distance_scaling = 1.0 : float   # How much to prefer route distances between successive time points that are closer to the euclidean distance. Smaller numbers mean the route distance is more likely to be close to the euclidean distance.
+#     sensor_std_dev = 5.0 : float   # Uncertainty of position sensor (in cm).
+#     diagonal_bias = 0.5 : float   # Biases the transition matrix to prefer the current track segment.
+#     """
+#
+#
+# @schema
+# class LinearizedPosition(dj.Computed):
+#     definition = """
+#     # Table for holding spike sorting runs
+#     -> LinearizationParameters
+#     ---
+#     -> AnalysisNwbfile
+#     units_object_id: varchar(40)           # Object ID for the units in NWB file
+#     time_of_sort=0: int                    # This is when the sort was done
+#     curation_feed_uri='': varchar(1000)    # Labbox-ephys feed for curation
     """
