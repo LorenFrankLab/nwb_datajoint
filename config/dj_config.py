@@ -7,12 +7,13 @@ import sys
 import datajoint as dj
 
 
-def configure_datajoint(user_name):
+def main(user_name):
     # define the hostname and port to connect
     dj.config['database.host'] = 'lmf-db.cin.ucsf.edu'
     dj.config['database.port'] = 3306
     dj.config['enable_python_native_blobs'] = True
     dj.config['database.use_tls'] = True
+    # CHANGE HERE: define user name
     dj.config['database.user'] = user_name
 
     # change password; this will prompt you to type in a new password
@@ -46,5 +47,4 @@ def configure_datajoint(user_name):
 
 
 if __name__ == "__main__":
-    user_name = sys.argv[1]
-    configure_datajoint(user_name)
+    main(sys.argv[0])
