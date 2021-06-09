@@ -221,4 +221,4 @@ class PositionInfo(dj.Computed):
 #     units_object_id: varchar(40)           # Object ID for the units in NWB file
 #     time_of_sort=0: int                    # This is when the sort was done
 #     curation_feed_uri='': varchar(1000)    # Labbox-ephys feed for curation
-    """
+    # """
