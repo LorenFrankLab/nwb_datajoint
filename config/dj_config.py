@@ -13,7 +13,6 @@ def configure_datajoint(user_name):
     dj.config['database.port'] = 3306
     dj.config['enable_python_native_blobs'] = True
     dj.config['database.use_tls'] = True
-    # CHANGE HERE: define user name
     dj.config['database.user'] = user_name
 
     # change password; this will prompt you to type in a new password
