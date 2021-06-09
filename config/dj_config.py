@@ -7,7 +7,7 @@ import sys
 import datajoint as dj
 
 
-def main(user_name):
+def configure_datajoint(user_name):
     # define the hostname and port to connect
     dj.config['database.host'] = 'lmf-db.cin.ucsf.edu'
     dj.config['database.port'] = 3306
@@ -47,4 +47,5 @@ def main(user_name):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    user_name = sys.argv[1]
+    configure_datajoint(user_name)
