@@ -23,7 +23,7 @@ class PositionInfoParameters(dj.Lookup):
 @schema
 class PositionInfo(dj.Computed):
     definition = """
-    -> nd.common_session.Session
+    -> nd.common.Session
     -> PositionInfoParameters
     ---
     -> AnalysisNwbfile
@@ -35,7 +35,7 @@ class PositionInfo(dj.Computed):
         key['analysis_file_name'] = AnalysisNwbfile().create(
             key['nwb_file_name'])
 
-        raw_position = (nd.common_behav.RawPosition() &
+        raw_position = (nd.common.RawPosition() &
                         {'nwb_file_name': key['nwb_file_name']}).fetch_nwb()
         raw_position = raw_position[0]['raw_position']
 
