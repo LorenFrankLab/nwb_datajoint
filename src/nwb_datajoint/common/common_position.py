@@ -44,7 +44,6 @@ class PositionInfo(dj.Computed):
         head_position = Position()
         head_orientation = CompassDirection()
         head_velocity = BehavioralTimeSeries()
-        head_speed = BehavioralTimeSeries()
 
         for ind, series_name in enumerate(raw_position.spatial_series):
             try:
@@ -78,18 +77,12 @@ class PositionInfo(dj.Computed):
                     name=f"epoch_{ind:02d}",
                     timestamps=position_info['time'],
                     conversion=0.01,
-                    data=position_info['velocity'],
+                    data=np.concatenate((position_info['velocity'],
+                                         position_info['speed'][:, np.newaxis]),
+                                        axis=1),
                     comments=spatial_series.comments,
-                    description='head_x_velocity, head_y_velocity'
+                    description='head_x_velocity, head_y_velocity, head_speed'
                 )
-
-                head_speed.create_timeseries(
-                    name=f"epoch_{ind:02d}",
-                    timestamps=position_info['time'],
-                    conversion=0.01,
-                    data=position_info['speed'],
-                    comments=spatial_series.comments,
-                    description='head_speed')
             except ValueError:
                 pass
 
