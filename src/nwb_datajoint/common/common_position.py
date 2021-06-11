@@ -94,8 +94,6 @@ class PositionInfo(dj.Computed):
             key['analysis_file_name'], head_orientation)
         key['head_velocity_object_id'] = nwb_analysis_file.add_nwb_object(
             key['analysis_file_name'], head_velocity)
-        key['head_speed_object_id'] = nwb_analysis_file.add_nwb_object(
-            key['analysis_file_name'], head_speed)
 
         self.insert1(key)
 
