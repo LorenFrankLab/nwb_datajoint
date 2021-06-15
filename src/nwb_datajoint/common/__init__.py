@@ -1,13 +1,15 @@
 # Reorganize this into hierarchy
 # Note: users will have their own tables... permission system
-from .common_behav import RawPosition, HeadDir, Speed, LinPos, StateScriptFile, VideoFile
+from .common_behav import PositionSource, RawPosition, HeadDir, Speed, LinPos, StateScriptFile, VideoFile
 from .common_device import DataAcquisitionDevice, CameraDevice, Probe
 from .common_dio import DIOEvents
 from .common_ephys import ElectrodeGroup, Electrode, Raw, SampleCount
 from .common_ephys import LFPSelection, LFP, LFPBandSelection, LFPBand
 from .common_spikesorting import (SortGroup, SpikeSorting, SpikeSorter, SpikeSorterParameters,
                                   SpikeSortingWaveformParameters, SpikeSortingArtifactParameters,
-                                  SpikeSortingParameters,SpikeSortingMetrics, CuratedSpikeSorting)
+                                  SpikeSortingParameters,SpikeSortingMetrics, CuratedSpikeSorting, 
+                                  AutomaticCurationParameters, AutomaticCurationSpikeSortingParameters,
+                                  AutomaticCurationSpikeSorting)
 from .common_filter import FirFilter
 from .common_interval import (IntervalList, SortInterval, interval_list_contains,
                               interval_list_contains_ind, interval_list_excludes,
