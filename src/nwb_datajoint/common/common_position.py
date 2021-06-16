@@ -37,7 +37,6 @@ class PositionInfo(dj.Computed):
 
         raw_position = (nd.common.RawPosition() &
                         {'nwb_file_name': key['nwb_file_name']}).fetch_nwb()
-        raw_position = raw_position[0]['raw_position']
 
         position_info_parameters = (PositionInfoParameters() & key).fetch()
 
@@ -45,9 +44,9 @@ class PositionInfo(dj.Computed):
         head_orientation = CompassDirection()
         head_velocity = BehavioralTimeSeries()
 
-        for ind, series_name in enumerate(raw_position.spatial_series):
+        for ind, epoch in enumerate(raw_position):
             try:
-                spatial_series = raw_position.get_spatial_series(series_name)
+                spatial_series = epoch['raw_position']
                 position_info = self.calculate_position_info_from_spatial_series(
                     spatial_series,
                     position_info_parameters['max_separation'],
