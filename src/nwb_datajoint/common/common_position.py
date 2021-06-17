@@ -1,6 +1,7 @@
 import datajoint as dj
 import numpy as np
 import nwb_datajoint as nd
+from nwb_datajoint.common.common_session import Session
 from nwb_datajoint.common.common_nwbfile import AnalysisNwbfile
 from position_tools import (get_angle, get_centriod, get_distance, get_speed,
                             get_velocity, interpolate_nan)
@@ -23,10 +24,13 @@ class PositionInfoParameters(dj.Lookup):
 @schema
 class PositionInfo(dj.Computed):
     definition = """
-    -> nd.common.Session
+    -> Session
     -> PositionInfoParameters
     ---
     -> AnalysisNwbfile
+    head_position_object_id : varchar(40)
+    head_orientation_object_id : varchar(40)
+    head_velocity_object_id : varchar(40)
     """
     # position info goes in nwb file, use nwb objects/object IDs
 
