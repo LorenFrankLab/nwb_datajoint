@@ -1,8 +1,9 @@
 import datajoint as dj
 import numpy as np
 import nwb_datajoint as nd
-from nwb_datajoint.common.common_session import Session
+from nwb_datajoint.common.common_behav import RawPosition
 from nwb_datajoint.common.common_nwbfile import AnalysisNwbfile
+from nwb_datajoint.common.common_session import Session
 from position_tools import (get_angle, get_centriod, get_distance, get_speed,
                             get_velocity, interpolate_nan)
 from pynwb.behavior import BehavioralTimeSeries, CompassDirection, Position
