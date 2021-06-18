@@ -99,6 +99,8 @@ class PositionInfo(dj.Computed):
         key['head_velocity_object_id'] = nwb_analysis_file.add_nwb_object(
             key['analysis_file_name'], head_velocity)
 
+        AnalysisNwbfile().add(key['nwb_file_name'], key['analysis_file_name'])
+
         self.insert1(key)
 
     def calculate_position_info_from_spatial_series(
