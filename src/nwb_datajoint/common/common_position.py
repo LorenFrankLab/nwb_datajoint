@@ -4,6 +4,7 @@ import nwb_datajoint as nd
 from nwb_datajoint.common.common_behav import RawPosition
 from nwb_datajoint.common.common_nwbfile import AnalysisNwbfile
 from nwb_datajoint.common.common_session import Session
+from nwb_datajoint.common.dj_helper_fn import fetch_nwb
 from position_tools import (get_angle, get_centriod, get_distance, get_speed,
                             get_velocity, interpolate_nan)
 from pynwb.behavior import BehavioralTimeSeries, CompassDirection, Position
@@ -194,6 +195,10 @@ class PositionInfo(dj.Computed):
                 'velocity': velocity,
                 'speed': speed,
                 }
+
+    def fetch_nwb(self, *attrs, **kwargs):
+        return fetch_nwb(self, (AnalysisNwbfile, 'analysis_file_abs_path'),
+                         *attrs, **kwargs)
 
 
 # @schema
