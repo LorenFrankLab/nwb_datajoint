@@ -153,8 +153,4 @@ dmypy.json
 temp_nwb/*
 
 notebooks/mountainsort4_output/
-*.lock
-*.json
-test_data/kachery-storage/*
-.vscode/*
-.idea/*
+notebooks/mark_extraction_test.ipynb

@@ -14,9 +14,10 @@ dependencies:
   - track_linearization
   - nb_conda
   - pip:
-    - labbox-ephys>=0.5
+    - labbox-ephys>=0.7
     - labbox-ephys-widgets-jp>=0.1
     - kachery
+    - kachery-client
     - mountainsort4
     - ml_ms4alg
     - spikeinterface>=0.12
@@ -26,6 +27,6 @@ dependencies:
     - ghostipy
     - pymysql>=1.0.*
     - h5py==2.10.*
-    - git+git://github.com/SpikeInterface/spikeextractors.git@e6f9255b0ff1a0140b313ae33b62b4676eeabfcd
+    - sortingview>=0.2
     - git+git://github.com/LorenFrankLab/ndx-franklab-novela
-    - git+git://github.com/magland/sortingview#egg=sortingview&subdirectory=src/python
+    - git+git://github.com/SpikeInterface/spikeextractors.git@e6f9255b0ff1a0140b313ae33b62b4676eeabfcd

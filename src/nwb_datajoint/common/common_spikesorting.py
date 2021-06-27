@@ -1,12 +1,14 @@
 import getpass
 import json
 import os
+import pathlib
 import tempfile
 import time
 from pathlib import Path
+import shutil
 
 import datajoint as dj
-import kachery_p2p as kp
+import kachery_client as kc
 import labbox_ephys as le
 import numpy as np
 import pynwb
@@ -18,6 +20,7 @@ import spiketoolkit as st
 from mountainsort4._mdaio_impl import readmda
 
 from .common_device import Probe
+from .common_lab import LabMember, LabTeam
 from .common_ephys import Electrode, ElectrodeGroup, Raw
 from .common_interval import (IntervalList, SortInterval,
                               interval_list_excludes_ind,
@@ -502,6 +505,7 @@ class SpikeSortingParameters(dj.Manual):
     -> SpikeSortingArtifactParameters
     -> SpikeSortingMetrics
     -> IntervalList
+    -> LabTeam
     import_path = '': varchar(200) # optional path to previous curated sorting output
     """
 
@@ -537,7 +541,7 @@ class SpikeSorting(dj.Computed):
             partially filled entity; value of primary keys from key source
             (in this case SpikeSortingParameters)
         """
-
+        team_name = (SpikeSortingParameters & key).fetch1('team_name')
         key['analysis_file_name'] = AnalysisNwbfile().create(key['nwb_file_name'])
 
         sort_interval = (SortInterval & {'nwb_file_name': key['nwb_file_name'],
@@ -651,43 +655,41 @@ class SpikeSorting(dj.Computed):
         key['units_object_id'] = units_object_id
 
         print('\nGenerating feed for curation...')
-        extractor_nwb_uri = kp.link_file(extractor_nwb_path)
+        extractor_nwb_uri = kc.link_file(extractor_nwb_path)
         print(
             f'kachery URI for symbolic link to extractor NWB file: {extractor_nwb_uri}')
 
         # create workspace
-        workspace_uri = kp.get(key['analysis_file_name'])
+        workspace_name = key['analysis_file_name']
+        workspace_uri = kc.get(workspace_name)
         if not workspace_uri:
-            workspace_uri = le.create_workspace(
-                label=key['analysis_file_name']).uri
-            kp.set(key['analysis_file_name'], workspace_uri)
+            workspace_uri = le.create_workspace(label=workspace_name).uri
+            kc.set(workspace_name, workspace_uri)
         workspace = le.load_workspace(workspace_uri)
         print(f'Workspace URI: {workspace.uri}')
-
+        
         recording_label = key['nwb_file_name'] + '_' + \
             key['sort_interval_name'] + '_' + str(key['sort_group_id'])
         sorting_label = key['sorter_name'] + '_' + key['parameter_set_name']
 
-        recording_uri = kp.store_json({
+        recording_uri = kc.store_json({
             'recording_format': 'nwb',
             'data': {
-                'path': extractor_nwb_path,
+                'path': extractor_nwb_path
             }
         })
-        sorting_uri = kp.store_json({
+        sorting_uri = kc.store_json({
             'sorting_format': 'nwb',
             'data': {
                 'path': extractor_nwb_path
             }
         })
-        labbox_sorting = le.LabboxEphysSortingExtractor(sorting_uri)
-        labbox_recording = le.LabboxEphysRecordingExtractor(
-            recording_uri, download=True)
 
-        R_id = workspace.add_recording(
-            recording=labbox_recording, label=recording_label)
-        S_id = workspace.add_sorting(
-            sorting=labbox_sorting, recording_id=R_id, label=sorting_label)
+        sorting = le.LabboxEphysSortingExtractor(sorting_uri)
+        recording = le.LabboxEphysRecordingExtractor(recording_uri, download=True)
+
+        R_id = workspace.add_recording(recording=recording, label=recording_label)
+        S_id = workspace.add_sorting(sorting=sorting, recording_id=R_id, label=sorting_label)
 
         key['curation_feed_uri'] = workspace.uri
 
@@ -701,15 +703,27 @@ class SpikeSorting(dj.Computed):
                     old_unit_id)] = external_metrics[metric_ind]['data'].pop(old_unit_id)
         workspace.set_unit_metrics_for_sorting(
             sorting_id=S_id, metrics=external_metrics)
+        
+        workspace_list = sortingview.WorkspaceList(list_name='default')
+        workspace_list.add_workspace(name=workspace_name, workspace=workspace)
+        print('Workspace added to sortingview')
 
-        # add to the web app as well
-        workspace_list = sortingview.WorkspaceList(
-            backend_uri='gs://labbox-franklab/sortingview-backends/franklab.json')
-        workspace_list.add_workspace(
-            name=key['analysis_file_name'], workspace=workspace)
-
-        # TODO: extract labels
-
+        print(f'To curate the spike sorting, go to https://sortingview.vercel.app/workspace?workspace={workspace.uri}&channel=franklab')
+        
+        # Give permission to workspace based on Google account
+        team_members = (LabTeam.LabTeamMember & {'team_name': team_name}).fetch('lab_member_name')
+        if len(team_members)==0:
+            raise ValueError('The specified team does not exist or there are no members in the team;\
+                             create or change the entry in LabTeam table first')
+        workspace = sortingview.load_workspace(workspace_uri)
+        for team_member in team_members:
+            google_user_id = (LabMember.LabMemberInfo & {'lab_member_name':team_member}).fetch('google_user_name')  
+            if len(google_user_id)!=1:
+                print(f'Google user ID for {team_member} does not exist or more than one ID detected;\
+                        permission to curate not given to {team_member}, skipping...')              
+            workspace.set_user_permissions(google_user_id[0], {'edit': True})
+            print(f'Permissions for {google_user_id[0]} set to: {workspace.get_user_permissions(google_user_id[0])}')
+    
         self.insert1(key)
         print('\nDone - entry inserted to table.')
 
@@ -951,11 +965,26 @@ class SpikeSorting(dj.Computed):
             ), f'Error: {metrics_path} does not exist when attempting to import {(SpikeSortingParameters() & key).fetch1()}'
             metrics_processed = json.load(metrics_path)
 
+    def nightly_cleanup(self):
+        """Clean up spike sorting directories that are not in the SpikeSorting table. 
+        This should be run after AnalysisNwbFile().nightly_cleanup()
+
+        :return: None
+        """
+        # get a list of the files in the spike sorting storage directory
+        dir_names = next(os.walk(os.environ['SPIKE_SORTING_STORAGE_DIR']))[1]
+        # now retrieve a list of the currently used analysis nwb files
+        analysis_file_names = self.fetch('analysis_file_name')
+        for dir in dir_names:
+            if not dir in analysis_file_names:
+                full_path = str(pathlib.Path(os.environ['SPIKE_SORTING_STORAGE_DIR']) / dir)
+                print(f'removing {full_path}')
+                shutil.rmtree(str(pathlib.Path(os.environ['SPIKE_SORTING_STORAGE_DIR']) / dir))
 
 @schema
 class AutomaticCurationParameters(dj.Manual):
     definition = """
-    #Table for holding parameters for automatic aspects of curation
+    # Table for holding parameters for automatic aspects of curation
     automatic_curation_param_name: varchar(80)   #name of this parameter set
     ---
     automatic_curation_param_dict: BLOB         #dictionary of variables and values for automatic curation
@@ -1126,8 +1155,7 @@ class CuratedSpikeSorting(dj.Computed):
         del key['analysis_file_name']
         del key['curator']
 
-        units_table = (CuratedSpikeSorting & key).fetch_nwb()[
-            0]['units'].to_dataframe()
+        units_table = (CuratedSpikeSorting & key).fetch_nwb()[0]['units'].to_dataframe()
 
         # Add entries to CuratedSpikeSorting.Units table
         print('\nAdding to dj Unit table...')
@@ -1143,3 +1171,73 @@ class CuratedSpikeSorting(dj.Computed):
 
     def fetch_nwb(self, *attrs, **kwargs):
         return fetch_nwb(self, (AnalysisNwbfile, 'analysis_file_abs_path'), *attrs, **kwargs)
+
+    def delete_extractors(self, key):
+        """Delete directories with sorting and recording extractors that are no longer needed
+
+        :param key: key to curated sortings where the extractors can be removed
+        :type key: dict
+        """
+        # get a list of the files in the spike sorting storage directory
+        dir_names = next(os.walk(os.environ['SPIKE_SORTING_STORAGE_DIR']))[1]
+        # now retrieve a list of the currently used analysis nwb files
+        analysis_file_names = (self & key).fetch('analysis_file_name')
+        delete_list = []
+        for dir in dir_names:
+            if not dir in analysis_file_names:
+                delete_list.append(dir)
+                print(f'Adding {dir} to delete list')
+        delete = input('Delete all listed directories (y/n)? ')
+        if delete == 'y' or delete == 'Y':
+            for dir in delete_list:
+                shutil.rmtree(dir)
+            return
+        print('No files deleted')
+
+@schema
+class UnitInclusionParameters(dj.Manual):
+    definition = """
+    unit_inclusion_param_name: varchar(80) # the name of the list of thresholds for unit inclusion
+    ---
+    max_noise_overlap=1:        float   # noise overlap threshold (include below) 
+    min_nn_hit_rate=-1:         float   # isolation score threshold (include above)
+    max_isi_violation=100:        float   # ISI violation threshold
+    min_firing_rate=0:          float   # minimum firing rate threshold
+    max_firing_rate=100000:      float   # maximum fring rate thershold
+    min_num_spikes=0:           int     # minimum total number of spikes
+    exclude_label_list=NULL:    BLOB    # list of labels to EXCLUDE
+    """
+    
+    def get_included_units(self, curated_sorting_key, unit_inclusion_key):
+        """given a reference to a set of curated sorting units and a specific unit inclusion parameter list, returns 
+        the units that should be included
+
+        :param curated_sorting_key: key to entries in CuratedSpikeSorting.Unit table
+        :type curated_sorting_key: dict
+        :param unit_inclusion_key: key to a single unit inclusion parameter set
+        :type unit_inclusion_key: dict
+        """
+
+        curated_sortings = (CuratedSpikeSorting() & curated_sorting_key).fetch()
+        inclusion_key = (UnitInclusionParameters & unit_inclusion_key).fetch1()
+        units = (CuratedSpikeSorting().Unit() & curated_sortings &
+                                               f'noise_overlap <= {inclusion_key["max_noise_overlap"]}' &
+                                               f'nn_hit_rate >= {inclusion_key["min_nn_hit_rate"]}' &
+                                               f'isi_violation <= {inclusion_key["max_isi_violation"]}' &
+                                               f'firing_rate >= {inclusion_key["min_firing_rate"]}' &
+                                               f'firing_rate <= {inclusion_key["max_firing_rate"]}' &
+                                               f'num_spikes >= {inclusion_key["min_num_spikes"]}').fetch()
+        #now exclude by label if it is specified
+        if inclusion_key['exclude_label_list'] is not None:
+            included_units = []
+            for unit in units:
+                labels = unit['label'].split(',')
+                exclude = False
+                for label in labels:
+                    if label in inclusion_key['exclude_label_list']:
+                        exclude = True
+                if not exclude:
+                    included_units.append(unit)   
+            return included_units
+        else:
+            return units

@@ -13,7 +13,7 @@ from .common_interval import (IntervalList, SortInterval,
                               interval_list_excludes,
                               interval_list_excludes_ind,
                               interval_list_intersect)
-from .common_lab import Institution, Lab, LabMember
+from .common_lab import Institution, Lab, LabMember, LabTeam
 from .common_nwbfile import (AnalysisNwbfile, AnalysisNwbfileKachery, Nwbfile,
                              NwbfileKachery)
 from .common_region import BrainRegion
@@ -26,7 +26,7 @@ from .common_spikesorting import (AutomaticCurationParameters,
                                   SpikeSorterParameters, SpikeSorting,
                                   SpikeSortingArtifactParameters,
                                   SpikeSortingMetrics, SpikeSortingParameters,
-                                  SpikeSortingWaveformParameters)
+                                  SpikeSortingWaveformParameters, UnitInclusionParameters)
 from .common_subject import Subject
 from .common_task import Task, TaskEpoch
 from .nwb_helper_fn import (close_nwb_files, estimate_sampling_rate,
