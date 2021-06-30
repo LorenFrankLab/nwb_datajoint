@@ -116,7 +116,7 @@ class PositionInfo(dj.Computed):
 
         # Get spatial series properties
         time = np.asarray(spatial_series.timestamps)  # seconds
-        position = spatial_series.data  # meters
+        position = np.asarray(spatial_series.data)  # meters
         dt = np.nanmean(np.diff(time))
         sampling_frequency = 1 / dt
         meters_to_pixels = spatial_series.conversion
